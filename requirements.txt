@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+osmnx
+networkx
+google-generativeai
+python-dotenv
+reverse_geocoder
+numpy
+scipy
