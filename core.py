@@ -6,7 +6,6 @@ import os
 import reverse_geocoder as rg
 import numpy as np
 import json
-import google.generativeai as genai
 from dotenv import load_dotenv
 
 # Charger les variables d'environnement depuis .env
@@ -193,28 +192,7 @@ def get_nodes_to_avoid(graph, city_name, radius_km=5):
     except Exception:
         return set()
 
-def translate_with_gemini(text, api_key):
-    if not api_key:
-        return text
-    
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        prompt = (
-            f"Translate the following text to Fon (Benin language). "
-            f"Ensure to translate 'Total' to 'Bǐ' and 'Saison' to 'Hwenu'. "
-            f"Translate 'Bus', 'Taxi', 'Suggestion' appropriately. "
-            f"Keep numbers, prices, and special characters (like |) exactly as is. "
-            f"Output ONLY the translated text, no markdown, no explanations. "
-            f"Text: '{text}'"
-        )
-        # Using a default generation config if not provided
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except Exception as e:
-        # Fallback silencieux en cas d'erreur API ou quota
-        print(f"Translation error: {e}")
-        return text
+
 
 def get_fon_city_name(city_fren):
     # Nettoyage basique pour matcher les clés
@@ -351,12 +329,14 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     json_output["destination"] = f"{dest_name_fon} - {km_final:.1f}km"
     
     # --- Metadata (Saison / Evitement) ---
+    # --- Metadata (Saison / Evitement) ---
     if avoid_input:
         city_avoid_fon = get_fon_city_name(avoid_input.title())
         json_output["avoid_city"] = city_avoid_fon
     
-    season_fr = "Saison des Pluies" if season_raining else "Saison Sèche"
-    json_output["season"] = translate_with_gemini(season_fr, api_key)
+    # Saison : Hwenu Jǐ (Pluies) / Hwenu Gbigbɔn (Sèche)
+    season_fon = "Hwenu Jǐ" if season_raining else "Hwenu Gbigbɔn"
+    json_output["season"] = season_fon
     
     # --- Info Sup ---
     dist_m, time_s = get_path_metrics(G, path)
@@ -367,7 +347,7 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     lat_max = max(G.nodes[n]['y'] for n in path)
     if season_raining and lat_max > 9.8:
         time_s += 1800 # +30m
-        weather_msg = " | [Météo] Route dégradée (+30min)"
+        weather_msg = " | [Météo] Ali gblé (+30min)"
         
     hours = int(time_s // 3600)
     minutes = int((time_s % 3600) // 60)
@@ -376,16 +356,18 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     # Suggestion
     sugg_msg = ""
     if hours >= 10:
-        sugg_msg = " | Suggestion: découper en 2 jours"
+        sugg_msg = " | Wɛn: Mi nɔ te bo yi (Pause suggérée)"
         
     # Coûts
     p_bus = int(km_total * 18)
     p_taxi = int(km_total * 30)
-    cost_msg = f" | Bus: ~{p_bus}F / Taxi: ~{p_taxi}F"
+    # Bus -> Bɔ̀s, Taxi -> Taxi
+    cost_msg = f" | Bɔ̀s: ~{p_bus}F / Taxi: ~{p_taxi}F"
     
-    info_sup_fr = f"Total: {km_total:.0f}km, {duration_str}{weather_msg}{cost_msg}{sugg_msg}"
+    # Total -> Bǐ
+    info_sup_fon = f"Bǐ: {km_total:.0f}km, {duration_str}{weather_msg}{cost_msg}{sugg_msg}"
     
-    # Traduction Info Sup
-    json_output["info_sup"] = translate_with_gemini(info_sup_fr, api_key)
+    # Traduction Info Sup (Direct)
+    json_output["info_sup"] = info_sup_fon
 
     return json_output

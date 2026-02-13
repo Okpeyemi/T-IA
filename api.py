@@ -27,7 +27,7 @@ app = FastAPI(
     Intègre les contraintes locales :
     
     *   **Météo** : Ajustement du temps de trajet en saison des pluies.
-    *   **Culture** : Traduction des étapes et conseils en Fon via IA.
+    *   **Culture** : Traduction des étapes et conseils en Fon.
     *   **Contexte** : Suggestion de pause pour les longs trajets.
     """,
     version="1.1.0",
@@ -106,9 +106,8 @@ async def get_route(request: RouteRequest):
     - **La saison** (impact sur les temps de trajet en cas de pluie)
     - **Les évitements** (contournement de villes spécifiques)
     
-    Le résultat inclut une traduction en langue locale (Fon) générée par IA.
+    Le résultat inclut une traduction en langue locale (Fon).
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
     is_raining = (request.season.lower() == "rain")
 
     try:
@@ -116,8 +115,7 @@ async def get_route(request: RouteRequest):
             start_input=request.start,
             end_input=request.end,
             avoid_input=request.avoid,
-            season_raining=is_raining,
-            api_key=api_key
+            season_raining=is_raining
         )
         return result
     except RouteError as e:
