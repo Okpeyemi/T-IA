@@ -1,5 +1,5 @@
-# Utiliser une image Python officielle légère
-FROM python:3.9-slim
+# Utiliser une image Python officielle légère (3.11 pour meilleures perfs)
+FROM python:3.11-slim
 
 # Définir le répertoire de travail
 WORKDIR /app
@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 8005
 
 # Commande de démarrage
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8005"]
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8005"]

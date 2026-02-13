@@ -29,7 +29,7 @@ def test_api():
         print(f"Error: {e}")
 
 from fastapi.testclient import TestClient
-from main import app
+from api import app
 
 client = TestClient(app)
 

@@ -7,3 +7,4 @@ python-dotenv
 reverse_geocoder
 numpy
 scipy
+scikit-learn
