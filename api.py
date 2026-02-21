@@ -2,9 +2,16 @@ from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 import os
+import httpx
+import logging
 from dotenv import load_dotenv
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
 from core import calculate_route_from_request, RouteError
+
+WEBHOOK_URL = "http://91.99.208.100:8002"
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -109,11 +116,21 @@ async def get_route(request: RouteRequest):
     """
     try:
         result = calculate_route_from_request(request.model_dump())
-        return result
     except RouteError as e:
         raise HTTPException(status_code=400, detail={"error": e.message, "details": e.details})
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "Erreur interne", "details": str(e)})
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(WEBHOOK_URL, json=result)
+            logger.info("Webhook envoyé → %s | status: %d", WEBHOOK_URL, resp.status_code)
+    except httpx.TimeoutException:
+        logger.warning("Webhook timeout : %s n'a pas répondu dans les délais", WEBHOOK_URL)
+    except httpx.RequestError as e:
+        logger.error("Webhook inaccessible : %s", e)
+
+    return result
 
 @app.get("/", tags=["General"], include_in_schema=False)
 def read_root():
