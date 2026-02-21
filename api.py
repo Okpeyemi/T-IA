@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 from core import calculate_route_from_request, RouteError
 
-WEBHOOK_URL = "http://91.99.208.100:8002"
+WEBHOOK_URL = "http://91.99.208.100:8002/synthesize-trajet"
 
 # Charger les variables d'environnement
 load_dotenv()
