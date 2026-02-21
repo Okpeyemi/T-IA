@@ -1,0 +1,37 @@
+                            Plan de Documentation
+Proposition de plan de documentation commun à tous les groupes, qui peut être adapté en
+fonction de chaque thématique.
+
+ I. Introduction
+   •   Contexte : Description de votre tâche
+   •   Objectif de la tâche : Rôle de votre composant dans la chaîne du projet
+
+ II. Analyse de la tâche
+   2.1 Définition du problème
+   • Nature technique de la tâche (TTS, SST, NER, …)
+   • Contraintes identifiées
+   2.2 État de l'art
+   • Brève présentation des approches existantes pour ce type de problème
+
+ III. Choix de l'Architecture et de l'Approche
+   3.1 Modèle retenu
+   • Nom du modèle et type d'architecture
+
+   3.2 Justification du choix
+   • Pourquoi ce modèle pour cette tâche ?
+   • Avantages par rapport aux alternatives
+
+   3.3 Méthodologie d’entrainement (Uniquement si entrainement ou fineting effectué)
+   • Présentation des données d'entrainement
+   • Justification des paramètres d'entrainement
+   • Résultats et métrique
+
+ IV. Présentation API
+   4.1 Description de l’endpoint
+   • Url de l’API et exemple d’appel
+
+   4.2 Format des requêtes et réponses
+   • Format d’entrée attendu
+   • Format de sortie produit
+   • Gestion des erreurs
+

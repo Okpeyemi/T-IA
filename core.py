@@ -371,3 +371,37 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     json_output["info_sup"] = info_sup_fon
 
     return json_output
+
+
+def calculate_route_from_request(request_data):
+    """
+    Parse une requête JSON POST et calcule l'itinéraire.
+    Format attendu :
+    {
+        "departure":  "Cotonou",          # Requis  → start_input
+        "destination": "Abomey",          # Requis  → end_input
+        "via":         null,              # Optionnel → avoid_input
+        "time":        null,              # Ignoré
+        "date":        "12 juillet",      # Ignoré
+        "passengers":  {"adults": 3},     # Ignoré
+        "trip_type":   null,              # Ignoré
+        "purpose":     null               # Ignoré
+    }
+    """
+    if isinstance(request_data, str):
+        request_data = json.loads(request_data)
+
+    start_input = request_data.get("departure")
+    end_input   = request_data.get("destination")
+    avoid_input = request_data.get("via") or None   # null → None
+
+    if not start_input:
+        raise RouteError("Champ 'departure' manquant ou vide")
+    if not end_input:
+        raise RouteError("Champ 'destination' manquant ou vide")
+
+    return calculate_route(
+        start_input=start_input,
+        end_input=end_input,
+        avoid_input=avoid_input,
+    )
