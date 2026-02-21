@@ -80,12 +80,12 @@ class RouteResponse(BaseModel):
         extra = "allow"
         json_schema_extra = {
             "example": {
-                "departure": "Kutɔnu (Cotonou)",
-                "step_1": "Xɔgbonu (Porto-Novo) - 16.2km",
+                "departure": "Cotonou",
+                "step_1": "Porto-Novo - 16.2km",
                 "step_2": "Sakete - 45.9km",
                 "destination": "Parakou - 90.0km",
-                "season": "Hwenu Gbigbɔn",
-                "info_sup": "Bǐ: 388km, ~7h49 | Mɔ́tɔ́: ~6979F / Taxi: ~11632F"
+                "season": "Saison sèche",
+                "info_sup": "Total: 388km, ~7h49 | Bus: ~6984F / Taxi: ~11640F"
             }
         }
 

@@ -11,15 +11,6 @@ from dotenv import load_dotenv
 # Charger les variables d'environnement depuis .env
 load_dotenv()
 
-# --- Configuration Gemini & Fon ---
-FON_CITIES = {
-    "Cotonou": "Kutɔnu",
-    "Porto-Novo": "Xɔgbonu",
-    "Abomey": "Agbomɛ",
-    "Ouidah": "Glexwé",
-    "Bohicon": "Bɔxikɔn",
-    "Allada": "Alada"
-}
 
 def load_graph(place_name="Benin", filename="benin_major.graphml"):
     """
@@ -194,14 +185,8 @@ def get_nodes_to_avoid(graph, city_name, radius_km=5):
 
 
 
-def get_fon_city_name(city_fren):
-    # Nettoyage basique pour matcher les clés
-    base_name = city_fren.split(',')[0].strip()
-    # Recherche case-insensitive
-    for k, v in FON_CITIES.items():
-        if k.lower() == base_name.lower():
-            return f"{v} ({k})"
-    return city_fren
+def get_city_name(city_name):
+    return city_name.split(',')[0].strip()
 
 def smart_geocode(query):
     try:
@@ -282,9 +267,9 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     
     json_output = {}
     
-    # Départ (Traduit si dans liste)
+    # Départ
     real_start_name = start_input.title()
-    json_output["departure"] = get_fon_city_name(real_start_name)
+    json_output["departure"] = get_city_name(real_start_name)
     
     # Calcul des étapes et distances
     segment_dist = 0.0
@@ -316,8 +301,8 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
                 current_city_name = next_city
             else:
                 km_seg = segment_dist / 1000.0
-                city_fon = get_fon_city_name(next_city)
-                json_output[f"step_{step_count}"] = f"{city_fon} - {km_seg:.1f}km"
+                city_fr = get_city_name(next_city)
+                json_output[f"step_{step_count}"] = f"{city_fr} - {km_seg:.1f}km"
                 
                 step_count += 1
                 segment_dist = 0.0
@@ -325,50 +310,42 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     
     # Destination
     km_final = segment_dist / 1000.0
-    dest_name_fon = get_fon_city_name(end_input.title())
-    json_output["destination"] = f"{dest_name_fon} - {km_final:.1f}km"
-    
-    # --- Metadata (Saison / Evitement) ---
+    dest_name_fr = get_city_name(end_input.title())
+    json_output["destination"] = f"{dest_name_fr} - {km_final:.1f}km"
+
     # --- Metadata (Saison / Evitement) ---
     if avoid_input:
-        city_avoid_fon = get_fon_city_name(avoid_input.title())
-        json_output["avoid_city"] = city_avoid_fon
-    
-    # Saison : Hwenu Jǐ (Pluies) / Hwenu Gbigbɔn (Sèche)
-    season_fon = "Hwenu Jǐ" if season_raining else "Hwenu Gbigbɔn"
-    json_output["season"] = season_fon
-    
+        json_output["avoid_city"] = get_city_name(avoid_input.title())
+
+    season_fr = "Saison des pluies" if season_raining else "Saison sèche"
+    json_output["season"] = season_fr
+
     # --- Info Sup ---
     dist_m, time_s = get_path_metrics(G, path)
     km_total = dist_m / 1000.0
-    
+
     # Météo
     weather_msg = ""
     lat_max = max(G.nodes[n]['y'] for n in path)
     if season_raining and lat_max > 9.8:
-        time_s += 1800 # +30m
-        weather_msg = " | [Météo] Ali gblé (+30min)"
-        
+        time_s += 1800  # +30min
+        weather_msg = " | [Météo] Pluies (+30min)"
+
     hours = int(time_s // 3600)
     minutes = int((time_s % 3600) // 60)
     duration_str = f"~{hours}h{minutes:02d}"
-    
-    # Suggestion
+
+    # Suggestion pause
     sugg_msg = ""
     if hours >= 10:
-        sugg_msg = " | Wɛn: Mi nɔ te bo yi (Pause suggérée)"
-        
+        sugg_msg = " | Pause suggérée (long trajet)"
+
     # Coûts
     p_bus = int(km_total * 18)
     p_taxi = int(km_total * 30)
-    # Bus -> Bɔ̀s, Taxi -> Taxi
-    cost_msg = f" | Bɔ̀s: ~{p_bus}F / Taxi: ~{p_taxi}F"
-    
-    # Total -> Bǐ
-    info_sup_fon = f"Bǐ: {km_total:.0f}km, {duration_str}{weather_msg}{cost_msg}{sugg_msg}"
-    
-    # Traduction Info Sup (Direct)
-    json_output["info_sup"] = info_sup_fon
+    cost_msg = f" | Bus: ~{p_bus}F / Taxi: ~{p_taxi}F"
+
+    json_output["info_sup"] = f"Total: {km_total:.0f}km, {duration_str}{weather_msg}{cost_msg}{sugg_msg}"
 
     return json_output
 
