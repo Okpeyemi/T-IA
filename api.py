@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel, Field
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 import os
 from dotenv import load_dotenv
 
-from core import calculate_route, RouteError
+from core import calculate_route_from_request, RouteError
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -40,31 +40,30 @@ app = FastAPI(
 
 # Modèle de requête enrichi
 class RouteRequest(BaseModel):
-    start: str = Field(
-        ..., 
-        title="Ville de départ", 
+    departure: str = Field(
+        ...,
+        title="Ville de départ",
         description="Nom de la ville ou du quartier de départ au Bénin.",
         examples=["Cotonou", "Ganhi"]
     )
-    end: str = Field(
-        ..., 
-        title="Ville d'arrivée", 
+    destination: str = Field(
+        ...,
+        title="Ville d'arrivée",
         description="Nom de la ville ou du quartier d'arrivée au Bénin.",
         examples=["Parakou", "Tchaourou"]
     )
-    avoid: Optional[str] = Field(
-        None, 
-        title="Ville à éviter", 
+    via: Optional[str] = Field(
+        None,
+        title="Ville à éviter / via",
         description="Nom d'une ville à contourner (ex: travaux, bouchons).",
         examples=["Bohicon"]
     )
-    season: str = Field(
-        "dry", 
-        title="Saison", 
-        description="Saison actuelle pour ajuster les temps de trajet ('dry' = sèche, 'rain' = pluies).",
-        pattern="^(dry|rain)$",
-        examples=["dry"]
-    )
+    # Champs optionnels transmis par le client (non utilisés dans le calcul)
+    time: Optional[str] = Field(None, description="Heure de départ souhaitée (informatif).")
+    date: Optional[str] = Field(None, description="Date de départ souhaitée (informatif).", examples=["12 juillet"])
+    passengers: Optional[Dict[str, Any]] = Field(None, description="Informations passagers (informatif).", examples=[{"adults": 3}])
+    trip_type: Optional[str] = Field(None, description="Type de trajet (informatif).")
+    purpose: Optional[str] = Field(None, description="Motif du voyage (informatif).")
 
 # Modèle de réponse pour la documentation
 class RouteResponse(BaseModel):
@@ -108,15 +107,8 @@ async def get_route(request: RouteRequest):
     
     Le résultat inclut une traduction en langue locale (Fon).
     """
-    is_raining = (request.season.lower() == "rain")
-
     try:
-        result = calculate_route(
-            start_input=request.start,
-            end_input=request.end,
-            avoid_input=request.avoid,
-            season_raining=is_raining
-        )
+        result = calculate_route_from_request(request.model_dump())
         return result
     except RouteError as e:
         raise HTTPException(status_code=400, detail={"error": e.message, "details": e.details})
