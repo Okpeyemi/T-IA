@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import os
+import re
 import httpx
 import logging
 from dotenv import load_dotenv
@@ -45,32 +46,16 @@ app = FastAPI(
     }
 )
 
-# Modèle de requête enrichi
+# Sous-modèle des entités extraites par le NLP
+class Entities(BaseModel):
+    Departure: List[str] = Field(..., description="Ville(s) de départ détectées.")
+    Destination: List[str] = Field(..., description="Ville(s) d'arrivée détectées.")
+    Passengers: Optional[List[str]] = Field(None, description="Informations passagers (informatif).")
+
+# Modèle de requête
 class RouteRequest(BaseModel):
-    departure: str = Field(
-        ...,
-        title="Ville de départ",
-        description="Nom de la ville ou du quartier de départ au Bénin.",
-        examples=["Cotonou", "Ganhi"]
-    )
-    destination: str = Field(
-        ...,
-        title="Ville d'arrivée",
-        description="Nom de la ville ou du quartier d'arrivée au Bénin.",
-        examples=["Parakou", "Tchaourou"]
-    )
-    via: Optional[str] = Field(
-        None,
-        title="Ville à éviter / via",
-        description="Nom d'une ville à contourner (ex: travaux, bouchons).",
-        examples=["Bohicon"]
-    )
-    # Champs optionnels transmis par le client (non utilisés dans le calcul)
-    time: Optional[str] = Field(None, description="Heure de départ souhaitée (informatif).")
-    date: Optional[str] = Field(None, description="Date de départ souhaitée (informatif).", examples=["12 juillet"])
-    passengers: Optional[Dict[str, Any]] = Field(None, description="Informations passagers (informatif).", examples=[{"adults": 3}])
-    trip_type: Optional[str] = Field(None, description="Type de trajet (informatif).")
-    purpose: Optional[str] = Field(None, description="Motif du voyage (informatif).")
+    text: str = Field(..., description="Phrase originale de l'utilisateur.")
+    entities: Entities = Field(..., description="Entités extraites par le NLP.")
 
 # Modèle de réponse pour la documentation
 class RouteResponse(BaseModel):
@@ -114,16 +99,29 @@ async def get_route(request: RouteRequest):
     
     Le résultat inclut une traduction en langue locale (Fon).
     """
+    # Extraire le nombre de passagers depuis la chaîne (ex: "2 adultes" → 2)
+    passengers = 1
+    if request.entities.Passengers:
+        match = re.search(r'\d+', request.entities.Passengers[0])
+        if match:
+            passengers = int(match.group())
+
     try:
-        result = calculate_route_from_request(request.model_dump())
+        result = calculate_route_from_request({
+            "departure":   request.entities.Departure[0],
+            "destination": request.entities.Destination[0],
+            "passengers":  passengers,
+        })
     except RouteError as e:
         raise HTTPException(status_code=400, detail={"error": e.message, "details": e.details})
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "Erreur interne", "details": str(e)})
 
+    payload = {"text": request.text, **result}
+
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(WEBHOOK_URL, json=result)
+            resp = await client.post(WEBHOOK_URL, json=payload)
             logger.info("Webhook envoyé → %s | status: %d", WEBHOOK_URL, resp.status_code)
     except httpx.TimeoutException:
         logger.warning("Webhook timeout : %s n'a pas répondu dans les délais", WEBHOOK_URL)

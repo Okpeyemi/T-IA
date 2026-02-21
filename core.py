@@ -200,7 +200,7 @@ class RouteError(Exception):
         self.details = details
         super().__init__(self.message)
 
-def calculate_route(start_input, end_input, avoid_input=None, season_raining=False, api_key=None):
+def calculate_route(start_input, end_input, avoid_input=None, season_raining=False, passengers=1, api_key=None):
     # 0. Validation : Origine/Destination identiques
     if start_input.lower() == end_input.lower():
         raise RouteError(f"Origine et destination identiques ({start_input})")
@@ -340,10 +340,11 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     if hours >= 10:
         sugg_msg = " | Pause suggérée (long trajet)"
 
-    # Coûts
-    p_bus = int(km_total * 18)
-    p_taxi = int(km_total * 30)
-    cost_msg = f" | Bus: ~{p_bus}F / Taxi: ~{p_taxi}F"
+    # Coûts (par passager × nombre de passagers)
+    p_bus = int(km_total * 18) * passengers
+    p_taxi = int(km_total * 30) * passengers
+    pax_label = f" x{passengers}" if passengers > 1 else ""
+    cost_msg = f" | Bus: ~{p_bus}F{pax_label} / Taxi: ~{p_taxi}F{pax_label}"
 
     json_output["info_sup"] = f"Total: {km_total:.0f}km, {duration_str}{weather_msg}{cost_msg}{sugg_msg}"
 
@@ -371,6 +372,7 @@ def calculate_route_from_request(request_data):
     start_input = request_data.get("departure")
     end_input   = request_data.get("destination")
     avoid_input = request_data.get("via") or None   # null → None
+    passengers  = int(request_data.get("passengers") or 1)
 
     if not start_input:
         raise RouteError("Champ 'departure' manquant ou vide")
@@ -381,4 +383,5 @@ def calculate_route_from_request(request_data):
         start_input=start_input,
         end_input=end_input,
         avoid_input=avoid_input,
+        passengers=passengers,
     )
