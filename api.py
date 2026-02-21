@@ -59,10 +59,11 @@ class RouteRequest(BaseModel):
 
 # Modèle de réponse pour la documentation
 class RouteResponse(BaseModel):
-    departure: str = Field(..., description="Lieu de départ formaté et traduit.")
-    destination: str = Field(..., description="Lieu d'arrivée formaté et traduit.")
-    season: str = Field(..., description="Saison courante traduite en Fon.")
-    info_sup: str = Field(..., description="Résumé du trajet (distance, durée, coût estimé) traduit en Fon.")
+    text: str = Field(..., description="Phrase originale de l'utilisateur.")
+    departure: str = Field(..., description="Lieu de départ.")
+    destination: str = Field(..., description="Lieu d'arrivée.")
+    season: str = Field(..., description="Saison courante.")
+    info_sup: str = Field(..., description="Résumé du trajet (distance, durée, coût estimé).")
     avoid_city: Optional[str] = Field(None, description="Ville évitée (si applicable).")
     
     # Pour les étapes dynamiques (step_1, step_2...), on utilise extra="allow" dans Pydantic
@@ -117,7 +118,8 @@ async def get_route(request: RouteRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": "Erreur interne", "details": str(e)})
 
-    payload = {"text": request.text, **result}
+    result["text"] = request.text
+    payload = result
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
