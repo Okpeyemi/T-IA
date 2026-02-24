@@ -248,7 +248,12 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     except RouteError:
         raise
     except Exception as e:
-        raise RouteError("Lieu introuvable", str(e))
+        raise RouteError(
+            "Lieu introuvable",
+            f"Impossible de localiser '{start_input}' ou '{end_input}' sur la carte. "
+            "Vérifiez l'orthographe et utilisez de préférence le nom officiel de la ville "
+            "(ex: 'Abomey-Calavi' et non 'Calavi', 'Porto-Novo' et non 'Ponto-Novo')."
+        )
         
     # 3. Évitement
     avoid_nodes = set()
@@ -259,7 +264,12 @@ def calculate_route(start_input, end_input, avoid_input=None, season_raining=Fal
     path, _ = bidirectional_dijkstra(G, start_node, end_node, weight='travel_time', avoid_nodes=avoid_nodes)
     
     if not path:
-        raise RouteError("Aucun chemin trouvé")
+        raise RouteError(
+            "Itinéraire introuvable",
+            f"Aucun chemin routier n'a pu être calculé entre '{start_input}' et '{end_input}'. "
+            "Cela peut arriver si les localités sont trop petites, mal orthographiées ou peu connectées au réseau routier principal. "
+            "Essayez avec des villes plus grandes ou mieux connues (ex: Cotonou, Parakou, Abomey, Natitingou, Bohicon)."
+        )
 
     # --- Calcul des Segments pour le JSON ---
     coords = [(G.nodes[n]['y'], G.nodes[n]['x']) for n in path]
